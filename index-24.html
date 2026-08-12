@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Author Compass — Book Generator</title>
+<style>
+  :root{
+    --bg:#161233; --bg2:#1e1a44; --panel:#211c4c; --line:#3a3270;
+    --pink:#ff9ecf; --lavender:#c6a6ff; --gold:#ffd166; --teal:#7ef2d1;
+    --text:#efeaff; --text-dim:#a49bd6;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh; font-family:'Georgia',serif; color:var(--text);
+    background:
+      radial-gradient(1px 1px at 10% 15%, #fff, transparent),
+      radial-gradient(1px 1px at 80% 25%, #fff, transparent),
+      radial-gradient(1px 1px at 40% 70%, #fff, transparent),
+      radial-gradient(1px 1px at 65% 45%, #fff, transparent),
+      radial-gradient(1px 1px at 25% 85%, #fff, transparent),
+      linear-gradient(180deg, var(--bg), var(--bg2));
+    background-attachment:fixed;
+  }
+  .wrap{ max-width:760px; margin:0 auto; padding:36px 20px 80px; }
+  h1{ font-size:26px; font-weight:600; margin:0 0 4px; color:var(--pink); text-shadow:0 0 16px rgba(255,158,207,0.4); }
+  .sub{ font-family:system-ui,sans-serif; font-size:13px; color:var(--text-dim); margin-bottom:26px; }
+
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px 20px; margin-bottom:20px; box-shadow:0 0 24px rgba(198,166,255,0.08); }
+  label{ display:block; font-family:system-ui,sans-serif; font-size:11.5px; letter-spacing:0.04em; text-transform:uppercase; color:var(--lavender); margin-bottom:8px; }
+  input[type=password], textarea{
+    width:100%; background:#141130; border:1px solid var(--line); border-radius:8px; color:var(--text);
+    padding:10px 12px; font-family:system-ui,sans-serif; font-size:13.5px; resize:vertical;
+  }
+  input[type=password]:focus, textarea:focus{ outline:none; border-color:var(--teal); }
+  textarea#storyInput{ min-height:160px; line-height:1.5; }
+  .key-row{ display:flex; gap:8px; align-items:center; }
+  .key-row input{ flex:1; }
+  .small-btn{
+    padding:9px 14px; border-radius:7px; border:1px solid var(--line); background:transparent; color:var(--text-dim);
+    font-family:system-ui,sans-serif; font-size:12px; cursor:pointer;
+  }
+  .small-btn:hover{ border-color:var(--teal); color:var(--teal); }
+  .key-note{ font-family:system-ui,sans-serif; font-size:11px; color:var(--text-dim); margin-top:6px; line-height:1.5; }
+
+  .action-row{ display:flex; gap:12px; flex-wrap:wrap; margin-top:6px; }
+  button.primary{
+    flex:1; min-width:150px; padding:13px; border:none; border-radius:9px; cursor:pointer;
+    font-family:system-ui,sans-serif; font-weight:700; font-size:13px; letter-spacing:0.02em;
+  }
+  #genBtn{ background:linear-gradient(135deg, var(--pink), var(--lavender)); color:#1a0f2e; }
+  #critiqueBtn{ background:linear-gradient(135deg, var(--teal), var(--lavender)); color:#0f1f2e; }
+  #playAllBtn{ background:linear-gradient(135deg, var(--gold), #ff9ecf); color:#2e1a0f; }
+  button.primary:disabled{ opacity:0.4; cursor:not-allowed; }
+  button.primary:hover:not(:disabled){ filter:brightness(1.08); }
+
+  .status{ font-family:system-ui,sans-serif; font-size:12.5px; color:var(--gold); margin-top:12px; min-height:16px; }
+
+  .chapter{ border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:14px; background:#1a1640; }
+  .chapter-head{ display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+  .chapter-title{ font-size:17px; color:var(--pink); font-weight:600; }
+  .chapter-meta{ font-family:system-ui,sans-serif; font-size:10.5px; color:var(--text-dim); }
+  .listen-btn{
+    flex-shrink:0; border:1px solid var(--teal); background:transparent; color:var(--teal); border-radius:20px;
+    padding:6px 14px; font-family:system-ui,sans-serif; font-size:11.5px; cursor:pointer;
+  }
+  .listen-btn.playing{ background:var(--teal); color:#0f1f2e; }
+  .chapter-text{ width:100%; min-height:140px; background:transparent; border:none; color:var(--text); font-size:14.5px; line-height:1.7; font-family:'Georgia',serif; resize:vertical; }
+  .chapter-text:focus{ outline:1px dashed var(--line); }
+  .notes{ font-family:system-ui,sans-serif; font-size:12.5px; color:var(--gold); background:rgba(255,209,102,0.07); border:1px solid rgba(255,209,102,0.3); border-radius:8px; padding:12px 14px; margin-bottom:14px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>✨ Book Generator</h1>
+  <div class="sub">Part of Author Compass — paste your storyline + outline, get a full 13-chapter draft in one click.</div>
+
+  <div class="panel">
+    <label>Anthropic API key (used only in your browser, sent only to Anthropic)</label>
+    <div class="key-row">
+      <input type="password" id="apiKey" placeholder="sk-ant-...">
+      <button class="small-btn" id="saveKeyBtn">Save</button>
+    </div>
+    <div class="key-note">Get a key at console.anthropic.com. It's stored in this browser's localStorage only — never sent anywhere but Anthropic. Generating and critiquing a book costs a few cents per run; listening is completely free (built into your browser, no key needed).</div>
+  </div>
+
+  <div class="panel">
+    <label>Your storyline + 13-chapter outline</label>
+    <textarea id="storyInput" placeholder="Paste the paragraphs about your book's world/characters, then your quick 13-chapter summary, all in one block..."></textarea>
+
+    <div class="action-row">
+      <button class="primary" id="genBtn">📖 Generate Book</button>
+      <button class="primary" id="critiqueBtn" disabled>🔍 Critique & Fix</button>
+      <button class="primary" id="playAllBtn" disabled>▶ Listen to Book</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div id="notesBox"></div>
+  <div id="chapters"></div>
+</div>
+
+<script>
+const apiKeyEl = document.getElementById('apiKey');
+const saveKeyBtn = document.getElementById('saveKeyBtn');
+const storyInput = document.getElementById('storyInput');
+const genBtn = document.getElementById('genBtn');
+const critiqueBtn = document.getElementById('critiqueBtn');
+const playAllBtn = document.getElementById('playAllBtn');
+const statusEl = document.getElementById('status');
+const chaptersEl = document.getElementById('chapters');
+const notesBox = document.getElementById('notesBox');
+
+const STORE_KEY = 'ac_api_key';
+const BOOK_KEY = 'ac_current_book';
+const STORY_KEY = 'ac_current_story';
+
+apiKeyEl.value = localStorage.getItem(STORE_KEY) || '';
+storyInput.value = localStorage.getItem(STORY_KEY) || '';
+saveKeyBtn.addEventListener('click', () => {
+  localStorage.setItem(STORE_KEY, apiKeyEl.value.trim());
+  statusEl.textContent = 'API key saved to this browser.';
+});
+storyInput.addEventListener('input', () => localStorage.setItem(STORY_KEY, storyInput.value));
+
+let currentChapters = [];
+let playQueue = [];
+let playIndex = -1;
+
+function getKey(){
+  const k = (localStorage.getItem(STORE_KEY) || apiKeyEl.value || '').trim();
+  return k;
+}
+
+async function callClaude(system, user, maxTokens){
+  const key = getKey();
+  if (!key){ throw new Error('Add and save your Anthropic API key first.'); }
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role:'user', content: user }]
+    })
+  });
+  if (!res.ok){
+    const errText = await res.text();
+    throw new Error(`API error ${res.status}: ${errText.slice(0,200)}`);
+  }
+  const data = await res.json();
+  const text = data.content.map(b => b.text || '').join('\n');
+  return text;
+}
+
+function extractJson(text){
+  let t = text.trim();
+  t = t.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/```\s*$/,'');
+  const start = t.indexOf('{');
+  const end = t.lastIndexOf('}');
+  if (start === -1 || end === -1) throw new Error('Could not find JSON in the response.');
+  return JSON.parse(t.slice(start, end+1));
+}
+
+function renderChapters(chapters){
+  chaptersEl.innerHTML = '';
+  chapters.forEach((ch, i) => {
+    const div = document.createElement('div');
+    div.className = 'chapter';
+    const words = (ch.content||'').trim().split(/\s+/).filter(Boolean).length;
+    div.innerHTML = `
+      <div class="chapter-head">
+        <div>
+          <div class="chapter-title">Chapter ${i+1}: ${ch.title || ''}</div>
+          <div class="chapter-meta">${words} words</div>
+        </div>
+        <button class="listen-btn" data-idx="${i}">▶ Listen</button>
+      </div>
+      <textarea class="chapter-text" data-idx="${i}">${ch.content || ''}</textarea>
+    `;
+    chaptersEl.appendChild(div);
+  });
+
+  document.querySelectorAll('.chapter-text').forEach(t => {
+    t.addEventListener('input', e => {
+      currentChapters[e.target.dataset.idx].content = e.target.value;
+      localStorage.setItem(BOOK_KEY, JSON.stringify(currentChapters));
+    });
+  });
+  document.querySelectorAll('.listen-btn').forEach(b => {
+    b.addEventListener('click', () => toggleListen(Number(b.dataset.idx)));
+  });
+}
+
+function toggleListen(i){
+  const btn = document.querySelector(`.listen-btn[data-idx="${i}"]`);
+  if (window.speechSynthesis.speaking && btn.classList.contains('playing')){
+    window.speechSynthesis.cancel();
+    document.querySelectorAll('.listen-btn').forEach(b => { b.classList.remove('playing'); b.textContent='▶ Listen'; });
+    playQueue = []; playIndex = -1;
+    return;
+  }
+  window.speechSynthesis.cancel();
+  document.querySelectorAll('.listen-btn').forEach(b => { b.classList.remove('playing'); b.textContent='▶ Listen'; });
+  const ch = currentChapters[i];
+  const utter = new SpeechSynthesisUtterance(ch.content || '');
+  utter.rate = 1;
+  utter.onstart = () => { btn.classList.add('playing'); btn.textContent = '⏸ Stop'; };
+  utter.onend = () => { btn.classList.remove('playing'); btn.textContent = '▶ Listen';
+    if (playQueue.length && playIndex < playQueue.length - 1){
+      playIndex++;
+      speakChapter(playQueue[playIndex]);
+    }
+  };
+  window.speechSynthesis.speak(utter);
+}
+
+function speakChapter(i){
+  document.querySelectorAll('.listen-btn').forEach(b => { b.classList.remove('playing'); b.textContent='▶ Listen'; });
+  const btn = document.querySelector(`.listen-btn[data-idx="${i}"]`);
+  const ch = currentChapters[i];
+  const utter = new SpeechSynthesisUtterance(ch.content || '');
+  utter.rate = 1;
+  utter.onstart = () => { btn.classList.add('playing'); btn.textContent = '⏸ Stop'; btn.scrollIntoView({behavior:'smooth', block:'center'}); };
+  utter.onend = () => {
+    btn.classList.remove('playing'); btn.textContent = '▶ Listen';
+    if (playIndex < playQueue.length - 1){ playIndex++; speakChapter(playQueue[playIndex]); }
+    else { playQueue = []; playIndex = -1; }
+  };
+  window.speechSynthesis.speak(utter);
+}
+
+playAllBtn.addEventListener('click', () => {
+  if (!currentChapters.length) return;
+  window.speechSynthesis.cancel();
+  playQueue = currentChapters.map((_,i)=>i);
+  playIndex = 0;
+  speakChapter(playQueue[0]);
+});
+
+genBtn.addEventListener('click', async () => {
+  const story = storyInput.value.trim();
+  if (!story){ statusEl.textContent = 'Paste your storyline + outline first.'; return; }
+  genBtn.disabled = true; critiqueBtn.disabled = true; playAllBtn.disabled = true;
+  statusEl.textContent = 'Writing your 13-chapter draft… this usually takes 30–90 seconds.';
+  notesBox.innerHTML = '';
+  try {
+    const system = `You are a skilled ghostwriter. Given a storyline description and a 13-chapter outline pasted together by the author, write the complete book: exactly 13 chapters, 400-500 words each, consistent voice, tense, and characters throughout. Output ONLY valid JSON, no markdown fences, no commentary, in exactly this shape:
+{"chapters":[{"title":"Chapter title","content":"Full chapter text..."}, ... 13 items total]}`;
+    const text = await callClaude(system, story, 8000);
+    const parsed = extractJson(text);
+    currentChapters = parsed.chapters || [];
+    localStorage.setItem(BOOK_KEY, JSON.stringify(currentChapters));
+    renderChapters(currentChapters);
+    statusEl.textContent = `Done — ${currentChapters.length} chapters generated.`;
+    critiqueBtn.disabled = false; playAllBtn.disabled = false;
+  } catch (err){
+    statusEl.textContent = 'Error: ' + err.message;
+  } finally {
+    genBtn.disabled = false;
+  }
+});
+
+critiqueBtn.addEventListener('click', async () => {
+  if (!currentChapters.length) return;
+  genBtn.disabled = true; critiqueBtn.disabled = true; playAllBtn.disabled = true;
+  statusEl.textContent = 'Critiquing and fixing weak spots… this usually takes 30–90 seconds.';
+  try {
+    const system = `You are a developmental editor. You will receive a complete 13-chapter book draft as JSON. Critique each chapter for weak spots — pacing issues, tone shifts, inconsistencies, dialogue that doesn't fit — and rewrite ONLY the parts that need fixing, preserving everything that already works. Return the FULL revised 13 chapters, same length range (400-500 words each). Output ONLY valid JSON, no markdown fences, no commentary, in exactly this shape:
+{"chapters":[{"title":"...","content":"..."}, ... 13 items], "notes":["short note on what was changed and why", ...]}`;
+    const user = JSON.stringify({ chapters: currentChapters });
+    const text = await callClaude(system, user, 8000);
+    const parsed = extractJson(text);
+    currentChapters = parsed.chapters || currentChapters;
+    localStorage.setItem(BOOK_KEY, JSON.stringify(currentChapters));
+    renderChapters(currentChapters);
+    if (parsed.notes && parsed.notes.length){
+      notesBox.innerHTML = `<div class="notes"><strong>Editor's notes:</strong><br>${parsed.notes.map(n=>'• '+n).join('<br>')}</div>`;
+    }
+    statusEl.textContent = 'Critique pass complete — changes applied above.';
+    playAllBtn.disabled = false;
+  } catch (err){
+    statusEl.textContent = 'Error: ' + err.message;
+  } finally {
+    genBtn.disabled = false; critiqueBtn.disabled = false;
+  }
+});
+
+// restore any previously generated book on reload
+const saved = localStorage.getItem(BOOK_KEY);
+if (saved){
+  try {
+    currentChapters = JSON.parse(saved);
+    if (currentChapters.length){ renderChapters(currentChapters); critiqueBtn.disabled = false; playAllBtn.disabled = false; }
+  } catch(e){}
+}
+</script>
+</body>
+</html>
